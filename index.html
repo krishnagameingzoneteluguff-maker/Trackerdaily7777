@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GrindTracker App</title>
+
+<style>
+body {
+  margin:0;
+  font-family:sans-serif;
+  background:#0f172a;
+  color:white;
+}
+
+/* HEADER */
+header {
+  background:#020617;
+  padding:15px;
+  text-align:center;
+  font-size:18px;
+}
+
+/* CONTENT */
+.container {
+  padding:15px;
+  padding-bottom:80px;
+}
+
+.card {
+  background:#1e293b;
+  padding:15px;
+  border-radius:12px;
+  margin-bottom:15px;
+}
+
+input, select, button {
+  width:100%;
+  padding:12px;
+  margin-top:10px;
+  border:none;
+  border-radius:10px;
+}
+
+button {
+  background:#22c55e;
+  color:white;
+}
+
+/* LOG */
+.log {
+  background:#020617;
+  padding:10px;
+  margin-top:10px;
+  border-radius:10px;
+}
+
+.time { color:#38bdf8; }
+
+.date-title {
+  color:#facc15;
+  margin-top:15px;
+}
+
+/* BOTTOM NAV */
+.nav {
+  position:fixed;
+  bottom:0;
+  left:0;
+  width:100%;
+  background:#020617;
+  display:flex;
+  justify-content:space-around;
+  padding:10px 0;
+}
+
+.nav button {
+  background:none;
+  color:white;
+  border:none;
+  font-size:16px;
+}
+</style>
+</head>
+
+<body>
+
+<header>🔥 GrindTracker</header>
+
+<div class="container">
+
+<!-- HOME -->
+<div id="home">
+<div class="card">
+<h3 id="today"></h3>
+
+<input type="time" id="start">
+<select id="startampm"><option>AM</option><option>PM</option></select>
+
+<input type="time" id="end">
+<select id="endampm"><option>AM</option><option>PM</option></select>
+
+<input type="text" id="task" placeholder="What did you do?">
+
+<button onclick="addTask()">Add Task</button>
+</div>
+</div>
+
+<!-- HISTORY -->
+<div id="history" style="display:none;">
+<div class="card">
+<h3>📜 History</h3>
+<div id="logs"></div>
+</div>
+</div>
+
+<!-- FUTURE -->
+<div id="future" style="display:none;">
+<div class="card">
+<input type="date" id="fdate">
+<input type="text" id="fplan" placeholder="Future plan">
+<button onclick="addFuture()">Add Plan</button>
+</div>
+
+<div class="card" id="futureLogs"></div>
+</div>
+
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="nav">
+<button onclick="showTab('home')">🏠 Home</button>
+<button onclick="showTab('history')">📜 History</button>
+<button onclick="showTab('future')">🚀 Future</button>
+</div>
+
+<script>
+
+let today = new Date().toDateString();
+document.getElementById("today").innerText = today;
+
+let data = JSON.parse(localStorage.getItem("data")) || {};
+let future = JSON.parse(localStorage.getItem("future")) || {};
+
+// TIME
+function convertTo24(time,ampm){
+  let [h,m]=time.split(":").map(Number);
+  if(ampm==="PM" && h!==12) h+=12;
+  if(ampm==="AM" && h===12) h=0;
+  return h+":"+m.toString().padStart(2,'0');
+}
+
+function format12(time){
+  let [h,m]=time.split(":").map(Number);
+  let ampm = h>=12?"PM":"AM";
+  let hr = h%12 || 12;
+  return hr+":"+m.toString().padStart(2,'0')+" "+ampm;
+}
+
+// ADD TASK
+function addTask(){
+  let s = convertTo24(start.value,startampm.value);
+  let e = convertTo24(end.value,endampm.value);
+  let t = task.value;
+
+  if(!s||!e||!t) return alert("Fill all");
+
+  if(!data[today]) data[today]=[];
+  data[today].push({s,e,t});
+
+  localStorage.setItem("data",JSON.stringify(data));
+  display();
+}
+
+// SHOW HISTORY
+function display(){
+  let logs = document.getElementById("logs");
+  logs.innerHTML="";
+
+  let dates = Object.keys(data).reverse();
+
+  dates.forEach(d=>{
+    logs.innerHTML += `<div class="date-title">${d}</div>`;
+
+    data[d].forEach(x=>{
+      logs.innerHTML += `
+      <div class="log">
+        <div class="time">${format12(x.s)} - ${format12(x.e)}</div>
+        <div>${x.t}</div>
+      </div>`;
+    });
+  });
+}
+
+// FUTURE
+function addFuture(){
+  let d=fdate.value;
+  let p=fplan.value;
+
+  if(!d||!p) return alert("Fill");
+
+  if(!future[d]) future[d]=[];
+  future[d].push(p);
+
+  localStorage.setItem("future",JSON.stringify(future));
+  showFuture();
+}
+
+function showFuture(){
+  let box = document.getElementById("futureLogs");
+  box.innerHTML="";
+
+  for(let d in future){
+    box.innerHTML+=`<div class="date-title">${d}</div>`;
+    future[d].forEach(x=>{
+      box.innerHTML+=`<div class="log">${x}</div>`;
+    });
+  }
+}
+
+// NAVIGATION
+function showTab(tab){
+  document.getElementById("home").style.display = tab==="home"?"block":"none";
+  document.getElementById("history").style.display = tab==="history"?"block":"none";
+  document.getElementById("future").style.display = tab==="future"?"block":"none";
+
+  if(tab==="history") display();
+}
+
+display();
+showFuture();
+
+</script>
+
+</body>
+</html>
